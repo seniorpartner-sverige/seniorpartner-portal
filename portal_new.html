@@ -306,6 +306,7 @@ td small{font-size:11px;color:#aaa;display:block;margin-top:1px}
     <div class="nsec" id="ns-ark">Arkiv</div>
     <div class="ni" id="ni-ark" onclick="nav('ark',this);buildArkiv()">🗄 Färdigbehandlade</div>
     <div class="ni" id="ni-dok" onclick="nav('dok',this);renderDocs()">📁 Dokument</div>
+    <div class="ni" id="ni-kontr" onclick="nav('kontr',this);renderKontrakter()">📋 Kontrakt <span id="ni-kontr-badge" style="display:none;background:#E74C3C;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;float:right;margin-top:1px">0</span></div>
     <div class="ni" id="ni-chat" onclick="nav('chat',this);openChat();setTimeout(buildDMList,100)">💬 Chatt <span id="ni-chat-badge" style="display:none;background:#E74C3C;color:#fff;border-radius:99px;font-size:10px;font-weight:700;padding:1px 6px;float:right;margin-top:1px">0</span></div>
     <div class="ni" id="ni-nyh" onclick="nav('nyh',this);loadNyheter();document.getElementById('pg-nyh').scrollTop=0;window.scrollTo(0,0)">📰 Nyheter</div>
     <div class="ni" id="ni-hms" onclick="nav('hms',this);renderHMS()">🦺 HMS-kort</div>
@@ -677,6 +678,13 @@ td small{font-size:11px;color:#aaa;display:block;margin-top:1px}
       <div style="margin-bottom:1.25rem">
         <button onclick="nav('hms',document.getElementById('ni-hms'));renderHMS()" style="width:100%;background:#C0392B;color:#fff;border:none;border-radius:12px;padding:1rem;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
           🦺 HMS-kort och nödnummer
+        </button>
+      </div>
+
+      <!-- KONTRAKT VARSEL (vises bare hvis ubekreftede kontrakter) -->
+      <div id="mitt-kontr-varsel" style="display:none;margin-bottom:1.25rem">
+        <button onclick="nav('kontr',document.getElementById('ni-kontr'));renderKontrakter()" style="width:100%;background:#E67E22;color:#fff;border:none;border-radius:12px;padding:1rem;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+          &#x1F4CB; Du har ubekreftede kontrakter – klikk her
         </button>
       </div>
 
@@ -1091,6 +1099,89 @@ td small{font-size:11px;color:#aaa;display:block;margin-top:1px}
         <div style="font-size:12px;margin-top:4px">Ladda upp filer här</div>
       </div>
       <div id="doc-list"></div>
+    </div>
+
+    <!-- KONTRAKT -->
+    <div id="pg-kontr" class="pg">
+      <div class="ph">
+        <div>
+          <div class="pt">Kontrakt & Avtal</div>
+          <div class="ps">Ansettelsesavtaler og ROT/RUT-avtal</div>
+        </div>
+        <div id="kontr-admin-btn" style="display:none">
+          <button class="btn btnb" onclick="openKontrModal()">+ Nytt kontrakt</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0;margin-bottom:1.25rem;border-bottom:2px solid #eee">
+        <button id="ktab-alle" onclick="setKontrTab('alle',this)" style="padding:.6rem 1.2rem;font-size:12px;font-weight:700;border:none;background:none;border-bottom:2px solid #185FA5;margin-bottom:-2px;color:#185FA5;cursor:pointer">Alle</button>
+        <button id="ktab-ansett" onclick="setKontrTab('ansett',this)" style="padding:.6rem 1.2rem;font-size:12px;font-weight:700;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:#888;cursor:pointer">&#x1F4DD; Ansettelse</button>
+        <button id="ktab-rot" onclick="setKontrTab('rot',this)" style="padding:.6rem 1.2rem;font-size:12px;font-weight:700;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:#888;cursor:pointer">&#x1F3E0; ROT/RUT</button>
+        <button id="ktab-annet" onclick="setKontrTab('annet',this)" style="padding:.6rem 1.2rem;font-size:12px;font-weight:700;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;color:#888;cursor:pointer">&#x1F4C4; Ovrigt</button>
+      </div>
+
+      <div id="kontr-stat" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem">
+          <div class="met"><div class="ml">Totalt</div><div style="font-size:20px;font-weight:800" id="kstat-tot">0</div><div class="ms">kontrakt</div></div>
+          <div class="met"><div class="ml">Bekraftade</div><div style="font-size:20px;font-weight:800;color:#27500A" id="kstat-ok">0</div><div class="ms">av ansatte</div></div>
+          <div class="met"><div class="ml">Vantar</div><div style="font-size:20px;font-weight:800;color:#E67E22" id="kstat-wait">0</div><div class="ms">svar</div></div>
+        </div>
+      </div>
+
+      <div id="kontr-em" style="text-align:center;padding:3rem;color:#aaa;display:none">
+        <div style="font-size:2rem;margin-bottom:.5rem">&#x1F4CB;</div>
+        <div style="font-size:14px;font-weight:600">Inga kontrakt annu</div>
+        <div style="font-size:12px;margin-top:4px">Admin kan laste opp kontrakter her</div>
+      </div>
+      <div id="kontr-list"></div>
+    </div>
+
+    <!-- KONTRAKT MODAL (admin: nytt kontrakt) -->
+    <div id="kontr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;align-items:center;justify-content:center;padding:1rem">
+      <div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+        <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:15px;font-weight:700">&#x1F4CB; Nytt kontrakt</div>
+          <button onclick="closeKontrModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999">&#x2715;</button>
+        </div>
+        <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Typ av kontrakt</div>
+            <select id="km-type" class="fsl" style="width:100%;margin:0" onchange="updateKontrModal()">
+              <option value="ansett">Ansettelsesavtal (personal)</option>
+              <option value="rot">ROT/RUT-avtal (kund)</option>
+              <option value="annet">Ovrigt avtal</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Titel</div>
+            <input id="km-title" class="fin" placeholder="t.ex. Anstallningsavtal - Johan Andersson" style="width:100%;margin:0">
+          </div>
+          <div id="km-pers-wrap">
+            <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px" id="km-pers-lbl">Tilldela till (personal)</div>
+            <select id="km-pers" class="fsl" style="width:100%;margin:0">
+              <option value="">-- Velg person --</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">PDF-fil</div>
+            <label style="display:flex;align-items:center;gap:10px;border:2px dashed #ddd;border-radius:10px;padding:1rem;cursor:pointer" onmouseover="this.style.borderColor='#185FA5'" onmouseout="this.style.borderColor='#ddd'">
+              <span style="font-size:1.5rem">&#x1F4C4;</span>
+              <div>
+                <div id="km-file-lbl" style="font-size:13px;font-weight:600;color:#185FA5">Velg PDF-fil</div>
+                <div style="font-size:11px;color:#aaa">Klikk for a bladre (.pdf, .doc, .docx)</div>
+              </div>
+              <input id="km-file" type="file" accept=".pdf,.doc,.docx" style="display:none" onchange="document.getElementById('km-file-lbl').textContent=this.files[0]?this.files[0].name:'Velg fil'">
+            </label>
+          </div>
+          <div style="background:#EAF3DE;border-radius:8px;padding:.75rem 1rem;font-size:12px;color:#27500A">
+            Kontraktet lastes opp til Supabase. Den tilordnede personen vil se det og kan bekrefte mottak med tidsstempel.
+          </div>
+        </div>
+        <div style="padding:1rem 1.5rem;border-top:1px solid #eee;display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn" onclick="closeKontrModal()">Avbryt</button>
+          <button class="btn btnb" onclick="uploadKontrakt()">Last opp kontrakt</button>
+        </div>
+      </div>
     </div>
 
     <!-- ADMINISTRASJON -->
@@ -2109,6 +2200,28 @@ async function sbLoad(){
         console.warn('Frånvaro tabell ej tillgänglig (HTTP '+rFv.status+') - kör SQL-filen i Supabase');
       }
     } catch(eFv){ console.warn('Frånvaro load skip:', eFv.message); }
+
+    // Load kontrakter
+    try {
+      var rKontr = await fetchWithTimeout(SUPA_URL+'/rest/v1/kontrakter?select=*&order=created_at.desc', {headers:hdr});
+      if(rKontr.ok){
+        kontrakter = await rKontr.json();
+        // Update badge on load
+        var isAdmin = CU && CU.role === 'admin';
+        if(isAdmin){
+          var wait = kontrakter.filter(function(k){ return !k.bekreftet; }).length;
+          var badge = document.getElementById('ni-kontr-badge');
+          if(badge){ badge.style.display = wait > 0 ? '' : 'none'; badge.textContent = wait; }
+        } else if(CU){
+          var mine = kontrakter.filter(function(k){ return (k.tilordnet===CU.email||k.tilordnet===CU.name) && !k.bekreftet; });
+          var badge = document.getElementById('ni-kontr-badge');
+          if(badge){ badge.style.display = mine.length > 0 ? '' : 'none'; badge.textContent = mine.length; }
+        }
+        console.log('Kontrakter lastet:', kontrakter.length);
+      } else {
+        console.warn('Kontrakter tabell ej tillgänglig (HTTP '+rKontr.status+') - opprett tabellen i Supabase');
+      }
+    } catch(eKontr){ console.warn('Kontrakter load skip:', eKontr.message); }
 
   } catch(e){
     console.warn('sbLoad feil:', e.message||e);
@@ -4039,6 +4152,300 @@ function renderArkiv(data){
 function filterArkiv(){var q=(document.getElementById('ak-q').value||'').toLowerCase();renderArkiv(q?arkFull.filter(function(r){return r.kund.toLowerCase().indexOf(q)>=0||r.srv.toLowerCase().indexOf(q)>=0;}):arkFull);}
 
 // DOKUMENTER
+
+// ============================================================
+// KONTRAKT & AVTAL MODULE
+// ============================================================
+var kontrakter = [];
+var kontrFilter = 'alle';
+
+function renderKontrakter() {
+  var isAdmin = CU && CU.role === 'admin';
+  // show/hide admin button and stats
+  var adminBtn = document.getElementById('kontr-admin-btn');
+  var statBox  = document.getElementById('kontr-stat');
+  if (adminBtn) adminBtn.style.display = isAdmin ? 'flex' : 'none';
+  if (statBox)  statBox.style.display  = isAdmin ? 'block' : 'none';
+
+  // Populate personal dropdown in modal
+  if (isAdmin) {
+    var sel = document.getElementById('km-pers');
+    if (sel) {
+      sel.innerHTML = '<option value="">-- Velg person --</option>';
+      personal.forEach(function(p) {
+        var o = document.createElement('option');
+        o.value = p.epost || p.namn;
+        o.textContent = p.namn + (p.epost ? ' <' + p.epost + '>' : '');
+        sel.appendChild(o);
+      });
+    }
+  }
+
+  loadKontrakter();
+}
+
+async function loadKontrakter() {
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/kontrakter?select=*&order=created_at.desc', {headers: SUPA_HDR});
+    if (r.ok) {
+      kontrakter = await r.json();
+    }
+  } catch(e) {
+    console.warn('Kontrakter fetch feil:', e);
+  }
+  renderKontraktListe();
+}
+
+function renderKontraktListe() {
+  var list = document.getElementById('kontr-list');
+  var em   = document.getElementById('kontr-em');
+  if (!list) return;
+  list.innerHTML = '';
+
+  var isAdmin = CU && CU.role === 'admin';
+
+  // Filter by tab
+  var filtered = kontrakter.filter(function(k) {
+    if (kontrFilter !== 'alle' && k.type !== kontrFilter) return false;
+    // Non-admin only sees their own
+    if (!isAdmin && k.tilordnet !== CU.email && k.tilordnet !== CU.name) return false;
+    return true;
+  });
+
+  // Admin stats
+  if (isAdmin) {
+    var tot  = kontrakter.length;
+    var ok   = kontrakter.filter(function(k){ return k.bekreftet; }).length;
+    var wait = tot - ok;
+    document.getElementById('kstat-tot').textContent  = tot;
+    document.getElementById('kstat-ok').textContent   = ok;
+    document.getElementById('kstat-wait').textContent = wait;
+    // badge
+    var badge = document.getElementById('ni-kontr-badge');
+    if (badge) { badge.style.display = wait > 0 ? '' : 'none'; badge.textContent = wait; }
+  } else {
+    // badge for ansatt: how many unconfirmed for them
+    var mine = kontrakter.filter(function(k){ return (k.tilordnet === CU.email || k.tilordnet === CU.name) && !k.bekreftet; });
+    var badge = document.getElementById('ni-kontr-badge');
+    if (badge) { badge.style.display = mine.length > 0 ? '' : 'none'; badge.textContent = mine.length; }
+  }
+
+  if (!filtered.length) { em.style.display = 'block'; return; }
+  em.style.display = 'none';
+
+  var typeLabel = {ansett: 'Ansettelsesavtal', rot: 'ROT/RUT-avtal', annet: 'Ovrigt avtal'};
+  var typeBadge = {ansett: 'background:#185FA5;color:#fff', rot: 'background:#27500A;color:#fff', annet: 'background:#888;color:#fff'};
+
+  filtered.forEach(function(k) {
+    var isConfirmed = !!k.bekreftet;
+    var canConfirm  = !isAdmin && !isConfirmed && (k.tilordnet === CU.email || k.tilordnet === CU.name);
+    var dato = k.created_at ? new Date(k.created_at).toLocaleDateString('sv-SE') : '';
+    var bekrDato = k.bekreftet_dato ? new Date(k.bekreftet_dato).toLocaleDateString('sv-SE') + ' ' + new Date(k.bekreftet_dato).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'}) : '';
+
+    var statusHtml = isConfirmed
+      ? '<span style="display:inline-flex;align-items:center;gap:4px;background:#EAF3DE;color:#27500A;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700">&#x2713; Bekraftat ' + (bekrDato ? bekrDato : '') + '</span>'
+      : '<span style="display:inline-flex;align-items:center;gap:4px;background:#FEF3E2;color:#E67E22;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700">&#x23F3; Vantar bekraftelse</span>';
+
+    var confirmBtn = canConfirm
+      ? '<button onclick="bekraftaKontrakt(\'' + k.id + '\')" class="btn btnb" style="font-size:12px;padding:6px 14px;margin-top:.5rem">&#x270D; Bekrefta mottagning</button>'
+      : '';
+
+    var adminActions = isAdmin
+      ? '<button onclick="deleteKontrakt('' + k.id + '')" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:12px;padding:4px 8px" title="Ta bort">&#x2715;</button>'
+      : '';
+
+    var pdfBtn = k.url
+      ? '<a href="' + k.url + '" target="_blank" class="btn" style="font-size:12px;padding:5px 12px;text-decoration:none;display:inline-block">&#x1F4C4; Aapna PDF</a>'
+      : '';
+
+    var div = document.createElement('div');
+    div.style.cssText = 'background:#fff;border:1px solid #eee;border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem;box-shadow:0 1px 4px rgba(0,0,0,.04)';
+    if (!isConfirmed && (canConfirm || isAdmin)) {
+      div.style.borderLeft = '3px solid #E67E22';
+    } else if (isConfirmed) {
+      div.style.borderLeft = '3px solid #27500A';
+    }
+
+    div.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:.35rem;flex-wrap:wrap">' +
+            '<span style="' + (typeBadge[k.type]||typeBadge.annet) + ';border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700">' + (typeLabel[k.type]||'Avtal') + '</span>' +
+            statusHtml +
+          '</div>' +
+          '<div style="font-size:14px;font-weight:700;margin-bottom:.2rem">' + (k.title||'Uten titel') + '</div>' +
+          '<div style="font-size:11px;color:#aaa">Tilordnet: <b style="color:#555">' + (k.tilordnet||'—') + '</b> &nbsp;·&nbsp; Lastet opp: ' + dato + (isAdmin && k.lastet_opp_av ? ' &nbsp;·&nbsp; Av: ' + k.lastet_opp_av : '') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:4px">' + adminActions + '</div>' +
+      '</div>' +
+      '<div style="margin-top:.75rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+        pdfBtn + confirmBtn +
+      '</div>';
+
+    list.appendChild(div);
+  });
+}
+
+function setKontrTab(tab, btn) {
+  kontrFilter = tab;
+  document.querySelectorAll('#pg-kontr button[id^="ktab-"]').forEach(function(b) {
+    b.style.borderBottom = '2px solid transparent';
+    b.style.color = '#888';
+  });
+  if (btn) { btn.style.borderBottom = '2px solid #185FA5'; btn.style.color = '#185FA5'; }
+  renderKontraktListe();
+}
+
+function openKontrModal() {
+  var m = document.getElementById('kontr-modal');
+  if (m) { m.style.display = 'flex'; }
+}
+
+function closeKontrModal() {
+  var m = document.getElementById('kontr-modal');
+  if (m) { m.style.display = 'none'; }
+  document.getElementById('km-title').value = '';
+  document.getElementById('km-file').value = '';
+  document.getElementById('km-file-lbl').textContent = 'Velg PDF-fil';
+}
+
+function updateKontrModal() {
+  var type = document.getElementById('km-type').value;
+  var lbl  = document.getElementById('km-pers-lbl');
+  if (lbl) lbl.textContent = type === 'rot' ? 'Tilordna til (kund)' : 'Tilordna til (personal)';
+  // For ROT/RUT, populate with customers instead
+  var sel = document.getElementById('km-pers');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Velg --</option>';
+  if (type === 'rot') {
+    kunder.forEach(function(k) {
+      var o = document.createElement('option');
+      o.value = k.namn;
+      o.textContent = k.namn;
+      sel.appendChild(o);
+    });
+  } else {
+    personal.forEach(function(p) {
+      var o = document.createElement('option');
+      o.value = p.epost || p.namn;
+      o.textContent = p.namn;
+      sel.appendChild(o);
+    });
+  }
+}
+
+async function uploadKontrakt() {
+  var type     = document.getElementById('km-type').value;
+  var title    = document.getElementById('km-title').value.trim();
+  var tilordnet= document.getElementById('km-pers').value;
+  var fileEl   = document.getElementById('km-file');
+  var f        = fileEl && fileEl.files[0];
+
+  if (!title)     { toast('Skriv inn en titel'); return; }
+  if (!tilordnet) { toast('Velg person'); return; }
+  if (!f)         { toast('Velg en fil'); return; }
+
+  toast('Laster opp...');
+  var filePath = 'kontrakter/' + Date.now() + '_' + f.name.replace(/\s/g,'_');
+  var url = '';
+
+  try {
+    var upRes = await fetch(SUPA_URL + '/storage/v1/object/dokumenter/' + filePath, {
+      method:'POST',
+      headers: {'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':f.type||'application/pdf'},
+      body: f
+    });
+    if (upRes.ok) {
+      url = SUPA_URL + '/storage/v1/object/public/dokumenter/' + filePath;
+    } else {
+      var err = await upRes.text();
+      toast('Storage feil: ' + err.substring(0,80));
+      return;
+    }
+  } catch(e) {
+    toast('Nettverksfeil: ' + e.message);
+    return;
+  }
+
+  var rec = {
+    id: genUUID(),
+    type: type,
+    title: title,
+    tilordnet: tilordnet,
+    url: url,
+    bekreftet: false,
+    bekreftet_dato: null,
+    lastet_opp_av: CU.name
+  };
+
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/kontrakter', {
+      method:'POST',
+      headers: Object.assign({}, SUPA_HDR, {'Prefer':'resolution=merge-duplicates,return=minimal'}),
+      body: JSON.stringify(rec)
+    });
+    if (!r.ok) {
+      var err2 = await r.text();
+      // Table might not exist yet - store locally and warn
+      toast('NB: Supabase-tabell mangler. Opprett "kontrakter"-tabellen. (' + r.status + ')');
+      kontrakter.unshift(rec);
+      renderKontraktListe();
+      closeKontrModal();
+      return;
+    }
+  } catch(e) {
+    toast('Lagringsfeil: ' + e.message);
+    return;
+  }
+
+  kontrakter.unshift(rec);
+  renderKontraktListe();
+  closeKontrModal();
+  toast('Kontrakt lastet opp og tilordnet ' + tilordnet);
+}
+
+async function bekraftaKontrakt(id) {
+  if (!confirm('Bekreft at du har lest og mottatt dette kontraktet. Dato og tidsstempel registreres.')) return;
+  var now = new Date().toISOString();
+  var idx = kontrakter.findIndex(function(k){ return k.id === id; });
+  if (idx < 0) return;
+
+  try {
+    var r = await fetch(SUPA_URL + '/rest/v1/kontrakter?id=eq.' + id, {
+      method:'PATCH',
+      headers: Object.assign({}, SUPA_HDR, {'Prefer':'return=minimal'}),
+      body: JSON.stringify({bekreftet: true, bekreftet_dato: now, bekreftet_av: CU.name + ' (' + CU.email + ')'})
+    });
+    if (!r.ok) {
+      // Update locally anyway if table issue
+      console.warn('PATCH feil, oppdaterer lokalt');
+    }
+  } catch(e) {
+    console.warn('Bekrafta feil:', e);
+  }
+
+  kontrakter[idx].bekreftet = true;
+  kontrakter[idx].bekreftet_dato = now;
+  renderKontraktListe();
+  toast('Bekraftelse registrert med tidsstempel');
+}
+
+async function deleteKontrakt(id) {
+  if (!confirm('Slett dette kontraktet permanent?')) return;
+  try {
+    await fetch(SUPA_URL + '/rest/v1/kontrakter?id=eq.' + id, {
+      method:'DELETE',
+      headers: SUPA_HDR
+    });
+  } catch(e) { console.warn(e); }
+  kontrakter = kontrakter.filter(function(k){ return k.id !== id; });
+  renderKontraktListe();
+  toast('Kontrakt slettet');
+}
+// ============================================================
+// END KONTRAKT MODULE
+// ============================================================
+
 function renderDocs(){
   var list=document.getElementById('doc-list');var em=document.getElementById('doc-em');if(!list)return;list.innerHTML='';
   var filtered=docFilter==='alle'?docs:docs.filter(function(d){return d.cat===docFilter;});
@@ -5704,6 +6111,15 @@ function inPeriod(datStr, p){
 
 function renderMittDash(){
   if(!CU || CU.role==='admin') return;
+
+  // Kontrakt varsel
+  var varsel = document.getElementById('mitt-kontr-varsel');
+  if(varsel && CU){
+    var pendingKontr = kontrakter.filter(function(k){
+      return (k.tilordnet===CU.email||k.tilordnet===CU.name) && !k.bekreftet;
+    });
+    varsel.style.display = pendingKontr.length > 0 ? 'block' : 'none';
+  }
 
   // Header
   var myStaff = staff.find(function(s){return s.em===CU.email||s.namn===CU.name;})||{};
